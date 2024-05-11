@@ -2,13 +2,22 @@ import requests
 from bs4 import BeautifulSoup
 import csv
 import re
-from nltk.corpus import stopwords
+"""from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
-from nltk.stem import WordNetLemmatizer
+from nltk.stem import WordNetLemmatizer"""
 
 from datetime import datetime
 from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
+
+#===================
+default_args = {
+    'owner': 'airflow',
+    'depends_on_past': False,
+    'email_on_failure': False,
+    'email_on_retry': False,
+    'retries': 1
+}
 
 #================Extracting Data via Web Scraping=================
 sources = ['https://www.dawn.com/', 'https://www.bbc.com/'] 
@@ -124,5 +133,31 @@ def transform(source):
         writer = csv.writer(csvfile)
         writer.writerow(['Title', 'Description'])
         for title, description in zip(preprocessed_titles, preprocessed_descriptions):
-            writer.writerow([title, description]) 
+            writer.writerow([title, description])
 
+def process_sources(**kwargs):  
+    for source in sources:
+        transform(source=source)
+
+#==================Defining the DAG===================
+with DAG('mlops_workflow', default_args=default_args) as dag:
+
+    extract_task_1 = PythonOperator(
+        task_id='extract_data_dawn',
+        python_callable=extract_dawn
+    )
+
+    extract_task_2 = PythonOperator(
+        task_id='extract_data_bbc',
+        python_callable=extract_bbc
+    )
+
+    preprocess_task = PythonOperator(
+        task_id='preprocess_data',
+        python_callable=process_sources,
+        provide_context=True
+    )
+
+
+#=================Defining Order of DAG=========================
+extract_task_1 >> extract_task_2 >> preprocess_task
