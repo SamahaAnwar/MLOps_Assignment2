@@ -6,6 +6,10 @@ from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
 
+from datetime import datetime
+from airflow import DAG
+from airflow.operators.python_operator import PythonOperator
+
 #================Extracting Data via Web Scraping=================
 sources = ['https://www.dawn.com/', 'https://www.bbc.com/'] 
 def extract_dawn():
@@ -121,3 +125,4 @@ def transform(source):
         writer.writerow(['Title', 'Description'])
         for title, description in zip(preprocessed_titles, preprocessed_descriptions):
             writer.writerow([title, description]) 
+
