@@ -1,6 +1,4 @@
 [core]
     remote = mydrive
-['remote "origin"']
-    url = gdrive://1v6e-MMjsWx5c9sgC4CAJ80NxGUr19mwd
 ['remote "mydrive"']
     url = gdrive://1v6e-MMjsWx5c9sgC4CAJ80NxGUr19mwd
