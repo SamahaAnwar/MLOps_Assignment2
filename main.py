@@ -9,10 +9,12 @@ from nltk.stem import WordNetLemmatizer"""
 from datetime import datetime
 from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
+from airflow.operators.bash_operator import BashOperator
 
 #===================
 default_args = {
     'owner': 'airflow',
+    'start_date': datetime(2024, 5, 11),
     'depends_on_past': False,
     'email_on_failure': False,
     'email_on_retry': False,
@@ -89,7 +91,7 @@ def preprocess_text(text):
     text = text.lower()
     
     # Tokenization: Splitting the text into individual words or tokens
-    tokens = word_tokenize(text)
+    """tokens = word_tokenize(text)
     
     # Remove stopwords
     stop_words = set(stopwords.words('english'))
@@ -100,23 +102,29 @@ def preprocess_text(text):
     tokens = [lemmatizer.lemmatize(word) for word in tokens]
     
     # Join tokens back into a single string
-    processed_text = ' '.join(tokens)
+    processed_text = ' '.join(tokens)"""
     
-    return processed_text
+    return text
 
-def transform(source):
-    str = source
+def transform():
+    str = source[0]
     if str.find("bbc") != -1:
         titles, descriptions = extract_bbc()
+        source = "bbc"
     elif str.find("dawn") != -1:
         titles, descriptions = extract_dawn()
+        source = "dawn"
     else:
         return   
-    #================Starting Pre-processing of Data=================    
+    #================Starting Pre-processing of Data=================  
+    # Preprocess titles and descriptions
+    preprocessed_titles = [preprocess_text(title) for title in titles]
+    preprocessed_descriptions = [preprocess_text(description) if description != "None" else "None" for description in descriptions]
+           
     #remove duplicates
     unique_titles = set()
     unique_descriptions = []
-    for title, description in zip(titles, descriptions):
+    for title, description in zip(preprocessed_titles, preprocessed_descriptions):    
         #if title is not a duplicate
         if title not in unique_titles:
             unique_titles.add(title)
@@ -124,16 +132,13 @@ def transform(source):
         else:
             continue   
 
-    # Preprocess titles and descriptions
-    preprocessed_titles = [preprocess_text(title) for title in unique_titles]
-    preprocessed_descriptions = [preprocess_text(description) if description != "None" else "None" for description in unique_descriptions]
-         
     #save as csv
     with open(f'preprocessed_data_{source}.csv', 'w', newline='', encoding='utf-8') as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(['Title', 'Description'])
-        for title, description in zip(preprocessed_titles, preprocessed_descriptions):
+        for title, description in zip(unique_titles, unique_descriptions):
             writer.writerow([title, description])
+
 
 def process_sources(**kwargs):  
     for source in sources:
@@ -155,9 +160,14 @@ with DAG('mlops_workflow', default_args=default_args) as dag:
     preprocess_task = PythonOperator(
         task_id='preprocess_data',
         python_callable=process_sources,
-        provide_context=True
+        #provide_context=True
+    )
+
+    load_task = BashOperator(
+        task_id='load_data',
+        
     )
 
 
 #=================Defining Order of DAG=========================
-extract_task_1 >> extract_task_2 >> preprocess_task
+extract_task_1 >> extract_task_2 >> preprocess_task 
