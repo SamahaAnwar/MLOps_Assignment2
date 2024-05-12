@@ -107,7 +107,7 @@ def preprocess_text(text):
     return text
 
 def transform():
-    str = source[0]
+    str = sources[0]
     if str.find("bbc") != -1:
         titles, descriptions = extract_bbc()
         source = "bbc"
@@ -159,13 +159,13 @@ with DAG('mlops_workflow', default_args=default_args) as dag:
 
     preprocess_task = PythonOperator(
         task_id='preprocess_data',
-        python_callable=process_sources,
+        python_callable=transform,
         #provide_context=True
     )
 
     load_task = BashOperator(
         task_id='load_data',
-        
+        bash_command = "dvc add data/preprocessed_data_dawn.csv"
     )
 
 
