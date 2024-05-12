@@ -165,9 +165,9 @@ with DAG('mlops_workflow', default_args=default_args) as dag:
 
     load_task = BashOperator(
         task_id='load_data',
-        bash_command = "dvc add data/preprocessed_data_dawn.csv"
+        bash_command = "dvc add preprocessed_data_dawn.csv"
     )
 
 
 #=================Defining Order of DAG=========================
-extract_task_1 >> extract_task_2 >> preprocess_task 
+extract_task_1 >> extract_task_2 >> preprocess_task >> load_task
